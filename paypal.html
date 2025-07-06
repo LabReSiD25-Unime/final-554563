@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Finta PayPal</title>
+  <link rel="stylesheet" href="stile.css" />
+</head>
+<body>
+  <main style="max-width: 400px; margin: 40px auto; padding: 20px; background: white; border-radius: 10px;">
+    <h2 style="text-align:center; color:#0070ba;">PayPal</h2>
+    <p id="info"></p>
+
+    <form id="paypal-form">
+      <label>Email PayPal:<br>
+        <input type="email" required style="width:100%; padding:8px;" />
+      </label><br><br>
+
+      <label>Password:<br>
+        <input type="password" required style="width:100%; padding:8px;" />
+      </label><br><br>
+
+      <div id="indirizzo-box" style="display:none;">
+        <label>Indirizzo di spedizione:<br>
+          <input type="text" name="indirizzo" style="width:100%; padding:8px;" />
+        </label><br><br>
+      </div>
+
+      <button type="submit" style="width:100%; background:#ffc439; border:none; padding:10px; font-weight:bold;">
+        Procedi al pagamento
+      </button>
+    </form>
+  </main>
+
+  <script>
+    // Prendi parametri da URL
+    const params = new URLSearchParams(window.location.search);
+    const tipo = params.get("tipo");
+    const importo = params.get("importo");
+    const id_ente = params.get("id_ente");
+    const id_articolo = params.get("id_articolo");
+
+    const info = document.getElementById("info");
+    const indirizzoBox = document.getElementById("indirizzo-box");
+
+    if (tipo === "donazione") {
+      info.innerHTML = `Stai per donare <strong>€ ${importo}</strong> all'ente <strong>ID #${id_ente}</strong>`;
+    } else if (tipo === "acquisto") {
+      info.innerHTML = `Stai per acquistare un articolo solidale da <strong>ID Ente #${id_ente}</strong> per <strong>€ ${importo}</strong>`;
+      indirizzoBox.style.display = "block";
+    } else {
+      info.innerHTML = "Errore: tipo di operazione sconosciuto.";
+    }
+
+    // Gestione submit
+    document.getElementById("paypal-form").addEventListener("submit", e => {
+      e.preventDefault();
+      window.location.href = "grazie.html";
+    });
+  </script>
+</body>
+</html>

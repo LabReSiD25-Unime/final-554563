@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ShareCare – Home</title>
+  <link rel="stylesheet" href="stile.css" />
+</head>
+<body>
+  <header>
+    <h1>ShareCare</h1>
+    <p>Condividi. Aiuta. Dona.</p>
+    <nav>
+      <a href="#enti">Enti benefici</a>
+      <a href="#articoli">Articoli solidali</a>
+      <a href="blog.html">Blog</a>
+    </nav>
+  </header>
+
+  <section class="slider-cause">
+    <div class="cause-list" id="cause-list">
+      <div class="cause">
+        <img src="risorse/palestina.jpg" alt="Palestina" />
+        <h3>Aiuti umanitari in Palestina</h3>
+        <p>Supporta le famiglie colpite da conflitti con aiuti diretti.</p>
+      </div>
+      <div class="cause">
+        <img src="risorse/unicef.jpg" alt="UNICEF" />
+        <h3>Sostegno all'infanzia con UNICEF</h3>
+        <p>Garantisci istruzione, acqua potabile e cure sanitarie ai bambini nel mondo.</p>
+      </div>
+      <div class="cause">
+        <img src="risorse/wwf.jpg" alt="WWF" />
+        <h3>Tutela ambientale con WWF</h3>
+        <p>Aiuta la salvaguardia delle specie a rischio e la protezione delle foreste.</p>
+      </div>
+      <div class="cause">
+        <img src="risorse/lgbtq.jpg" alt="LGBTQ+" />
+        <h3>Diritti e pari opportunità</h3>
+        <p>Sostieni l’inclusione e i diritti civili nelle comunità più vulnerabili.</p>
+      </div>
+    </div>
+  </section>
+
+  <main>
+    <!-- Enti benefici -->
+    <section id="enti">
+      <h2>Enti benefici supportati</h2>
+      <ul id="lista-enti" class="grid">
+        <li>Caricamento in corso...</li>
+      </ul>
+    </section>
+
+    <!-- Articoli solidali -->
+    <section id="articoli">
+      <h2>Articoli solidali</h2>
+      <div id="articoli-container" class="grid">
+        <p>Caricamento in corso...</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- Template per clonare le card dinamicamente -->
+  <template id="ente-template">
+    <li class="card">
+      <h3 class="nome"></h3>
+      <p class="descrizione"></p>
+      <small class="sede"></small>
+    </li>
+  </template>
+
+  <template id="articolo-template">
+    <div class="card">
+      <img class="foto" />
+      <h3 class="nome"></h3>
+      <p class="descrizione"></p>
+      <p class="prezzo"></p>
+    </div>
+  </template>
+
+  <script>
+    // Helper abbreviations
+    const $ = s => document.querySelector(s);
+
+    // --- Carica enti benefici ---
+    fetch("http://localhost:8080/enti")
+      .then(response => response.json())
+      .then(dati => {
+        const ul = document.getElementById("lista-enti");
+        ul.innerHTML = ""; // Svuota messaggio iniziale
+
+        if (dati.length === 0) {
+          ul.innerHTML = "<li>Nessun ente disponibile.</li>";
+          return;
+        }
+
+        dati.forEach(ente => {
+          const li = document.createElement("li");
+          li.innerHTML = `
+            <div class="ente-box">
+              <img src="${ente.Logo}" alt="Logo ${ente.Nome}" class="ente-logo">
+              <div>
+                <strong>${ente.Nome}</strong><br>
+                <em>${ente.Descrizione || "Nessuna descrizione"}</em><br>
+                <small>${ente.Sede || ""}</small><br>
+                <button class="btn-dona" data-ente="${ente.ID_Ente}" data-importo="10">Dona con PayPal</button>
+              </div>
+            </div>
+          `;
+          ul.appendChild(li);
+        });
+      })
+      .catch(error => {
+        document.getElementById("lista-enti").innerHTML = "<li>Errore di connessione al server.</li>";
+        console.error("Errore nella richiesta:", error);
+      });
+
+    // --- Carica articoli solidali ---
+    fetch("http://localhost:8080/articoli")
+      .then(r => r.ok ? r.json() : Promise.reject(r))
+      .then(articoli => {
+        const container = $("#articoli-container");
+        container.innerHTML = "";
+        if (!articoli.length) {
+          container.textContent = "Nessun articolo disponibile.";
+          return;
+        }
+        const tpl = $("#articolo-template").content;
+        articoli.forEach(a => {
+          const prezzo = parseFloat(a.Prezzo || 0);
+          const card = document.createElement("div");
+          card.className = "card";
+          card.innerHTML = `
+            <img src="${a.Foto}" alt="${a.Nome}" />
+            <h3>${a.Nome}</h3>
+            <p>${a.Descrizione || ""}</p>
+            <p class="prezzo">€ ${prezzo.toFixed(2)}</p>
+            <button class="btn-acquista" data-articolo="${a.ID_Articolo}" data-ente="${a.ID_Ente}" data-importo="${prezzo.toFixed(2)}">Acquista con PayPal</button>
+          `;
+          container.appendChild(card);
+        });
+      })
+      .catch(err => {
+        console.error("Errore articoli:", err);
+        $("#articoli-container").textContent = "Errore nel caricamento degli articoli.";
+      });
+  </script>
+  <script>
+  // Scorrimento automatico cause ogni 10 secondi
+  let index = 0;
+  const causes = document.querySelectorAll(".cause");
+  const causeList = document.getElementById("cause-list");
+
+  setInterval(() => {
+    index = (index + 1) % causes.length;
+    causeList.style.transform = `translateX(-${index * 100}vw)`;
+  }, 10000);
+  </script>
+  <script>
+  // Gestione click bottoni PayPal
+  document.body.addEventListener('click', e => {
+    if (e.target.classList.contains('btn-dona')) {
+      const b = e.target;
+      const ente = b.dataset.ente;
+      const importo = b.dataset.importo;
+      location.href = `paypal.html?tipo=donazione&id_ente=${ente}&importo=${importo}`;
+    }
+
+    if (e.target.classList.contains('btn-acquista')) {
+      const b = e.target;
+      const ente = b.dataset.ente;
+      const art  = b.dataset.articolo;
+      const imp  = b.dataset.importo;
+      location.href = `paypal.html?tipo=acquisto&id_ente=${ente}&id_articolo=${art}&importo=${imp}`;
+    }
+  });
+  </script>
+</body>
+</html>

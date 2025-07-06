@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <title>Blog - ShareCare</title>
+  <link rel="stylesheet" href="stile.css">
+</head>
+<body>
+
+  <main id="blog">
+    <h2>Condividi la tua esperienza</h2>
+
+    <form id="form-blog">
+      <input type="text" id="nome-blog" placeholder="Il tuo nome" required />
+      <textarea id="messaggio-blog" placeholder="Scrivi qui la tua esperienza..." required></textarea>
+      <button type="submit">Pubblica</button>
+    </form>
+
+    <div id="post-container">
+      <p>Caricamento post...</p>
+    </div>
+  </main>
+
+  <script>
+    // Carica post
+    function caricaPost() {
+      fetch("http://localhost:8080/blog")
+        .then(res => res.json())
+        .then(posts => {
+          const container = document.getElementById("post-container");
+          container.innerHTML = "";
+          posts.forEach(p => {
+            const div = document.createElement("div");
+            div.className = "post";
+            div.innerHTML = `<strong>${p.Nome}</strong> (${p.Data})<br>${p.Messaggio}`;
+            container.appendChild(div);
+          });
+        });
+    }
+
+    // Invia nuovo post
+    document.getElementById("form-blog").addEventListener("submit", e => {
+      e.preventDefault();
+      const nome = document.getElementById("nome-blog").value;
+      const msg = document.getElementById("messaggio-blog").value;
+
+      fetch("http://localhost:8080/blog", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ Nome: nome, Messaggio: msg })
+      })
+      .then(res => {
+        if (res.ok) {
+          caricaPost();
+          document.getElementById("form-blog").reset();
+        } else {
+          alert("Errore nel salvataggio");
+        }
+      });
+    });
+
+    caricaPost();
+  </script>
+</body>
+</html>

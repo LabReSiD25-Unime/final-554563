@@ -1,0 +1,159 @@
+body {
+  margin: 0;
+  font-family: sans-serif;
+  background: #f2f9ff;
+  color: #003366;
+}
+
+header {
+  background: #0099cc;
+  color: white;
+  text-align: center;
+  padding: 1em;
+}
+
+h1 {
+  margin: 0;
+  font-size: 2em;
+}
+
+section {
+  padding: 1em 2em;
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+}
+
+.grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1em;
+}
+
+.card {
+  background: white;
+  border-radius: 10px;
+  padding: 1em;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  width: 200px;
+}
+
+.card img {
+  width: 100%;
+  border-radius: 8px;
+}
+
+footer {
+  background: #e0f2ff;
+  text-align: center;
+  padding: 1em;
+  font-size: 0.9em;
+}
+
+.slider-cause {
+  overflow: hidden;
+  background-color: #e0f0ff;
+  border-top: 2px solid #b0d0f0;
+  border-bottom: 2px solid #b0d0f0;
+  padding: 20px 0;
+}
+
+.cause-list {
+  display: flex;
+  transition: transform 1s ease-in-out;
+  width: max-content;
+}
+
+.cause {
+  min-width: 100vw;
+  box-sizing: border-box;
+  text-align: center;
+  padding: 20px;
+  color: #004d80;
+}
+
+.cause img {
+  width: 200px;
+  height: auto;
+  border-radius: 10px;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
+}
+
+.cause h3 {
+  font-size: 1.4rem;
+  margin: 10px 0 5px;
+}
+
+.cause p {
+  font-size: 1rem;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.ente-box {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.ente-logo {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 0 5px rgba(0,0,0,0.2);
+}
+
+.btn-dona {
+  background: #ffeb3b;
+  color: #01579b;
+  font-weight: bold;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+.btn-acquista {
+  background: #4caf50;
+  color: white;
+  font-weight: bold;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+#blog {
+  margin: 40px auto;
+  max-width: 700px;
+  padding: 20px;
+  background: #eef;
+  border-radius: 10px;
+}
+
+#form-blog input, #form-blog textarea {
+  display: block;
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 8px;
+  font-size: 1rem;
+}
+
+#form-blog button {
+  padding: 8px 16px;
+  font-weight: bold;
+}
+
+#post-container .post {
+  background: white;
+  padding: 10px;
+  margin-top: 10px;
+  border-radius: 5px;
+  box-shadow: 0 0 4px rgba(0,0,0,0.1);
+}
