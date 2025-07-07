@@ -40,7 +40,7 @@ int init_db(sqlite3 *db) {
         "  Data      TEXT DEFAULT CURRENT_TIMESTAMP"
         ");";
 
-    char *err = NULL;
+    char *err = NULL; //prepara un puntatore dove SQLite potrà copiare un messaggio di errore se qualcosa va storto
     int rc = sqlite3_exec(db, sql, 0, 0, &err);
     if (rc != SQLITE_OK) {
         fprintf(stderr, "SQLite error: %s\n", err);
@@ -52,36 +52,42 @@ int init_db(sqlite3 *db) {
 
 
 //JSON UTILS
-static char *json_array(sqlite3 *db, const char *sql) {
-    sqlite3_stmt *stmt;
-    if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK) return strdup("[]");
+static char *json_array(sqlite3 *db, const char *sql) { //costruire e restituire una stringa JSON contenente i risultati della query
+    sqlite3_stmt *stmt; //riceve un puntatore al db e alla query 
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK) return strdup("[]"); //prepara la query SQL (sql) per l'esecuzione.
 
-    size_t size = 8192;
+//Se fallisce, restituisce un array JSON vuoto.
+
+    size_t size = 8192; //alloca memoria x un buffer json 
     char *json = malloc(size);
     if (!json) return strdup("[]");
 
     strcpy(json, "[");
-    int first = 1;
+    int first = 1; //per sapere quando aggiungere la virgola tra gli oggetti JSON
 
-    while (sqlite3_step(stmt) == SQLITE_ROW) {
-        const unsigned char *item = sqlite3_column_text(stmt, 0);
+    while (sqlite3_step(stmt) == SQLITE_ROW) { //scorre i risultati della query
+        const unsigned char *item = sqlite3_column_text(stmt, 0); //estrae il valore della prima colonna della riga corrente.
+        //ci si aspetta che la colonna contenga una stringa JSON parziale già formattata da SQLite
         if (!item) continue;
 
-        if (!first) strcat(json, ",");
+        if (!first) strcat(json, ","); //Aggiunge la virgola tra gli oggetti JSON, ma non prima del primo oggetto.
+        else
         first = 0;
 
-        if (strlen(json) + strlen((const char *)item) + 2 > size) {
+        if (strlen(json) + strlen((const char *)item) + 2 > size) { //verifica se lo spazio nel buffer json è sufficiente a contenere il nuovo oggetto JSON più , e ]
             size *= 2;
-            char *new_json = realloc(json, size);
+            char *new_json = realloc(json, size); //se non lo è, raddoppia la dimensione del buffer con realloc.
+
+
             if (!new_json) {
                 sqlite3_finalize(stmt);
-                free(json);
-                return strdup("[]");
+                free(json);                //se realloc fallisce, libera il buffer json e restituisce un array JSON vuoto
+                return strdup("[]"); 
             }
             json = new_json;
         }
 
-        strcat(json, (const char *)item);
+        strcat(json, (const char *)item);//aggiunge l'oggetto JSON parziale al buffer json
     }
 
     strcat(json, "]");
@@ -107,19 +113,22 @@ char *get_articoli_json(sqlite3 *db) {
         "Prezzo, Quantita, COALESCE(Foto,'') "
         "FROM Articolo_Solidale;";
 
-    sqlite3_stmt *st;
-    if (sqlite3_prepare_v2(db, sql, -1, &st, NULL) != SQLITE_OK) return strdup("[]");
+    sqlite3_stmt *st; //Dichiara un puntatore a uno "statement" preparato
+    if (sqlite3_prepare_v2(db, sql, -1, &st, NULL) != SQLITE_OK) return strdup("[]");//restituisce json vuoto se la preparazione fallisce
 
-    size_t cap = 8192;
-    char *json = malloc(cap);          //buffer dinamico
-    if (!json) { sqlite3_finalize(st); return strdup("[]"); }
+    size_t cap = 8192; //size_t è un tipo senza segno adatto per rappresentare dimensioni/memorie.
+    char *json = malloc(cap);    //Alloca un buffer dinamico in memoria heap, grande 8192 byte
+    if (!json) { sqlite3_finalize(st); return strdup("[]"); } //se non cìè abbastanza memoria restituisce un array JSON vuoto
 
-    strcpy(json, "[");
+    strcpy(json, "["); //costruisce manualmente una stringa JSON che rappresenta un array di oggetti, ognuno dei quali è un articolo solidale con attributi 
     int first = 1;
 
-    while (sqlite3_step(st) == SQLITE_ROW) {
+    while (sqlite3_step(st) == SQLITE_ROW) { //Ogni riga rappresenta un articolo
         if (!first) strcat(json, ",");
         first = 0;
+//estrae le colonne una per una.
+
+//ogni sqlite3_column_* recupera il campo giusto 
 
         int id          = sqlite3_column_int   (st, 0);
         const char *nome= (const char *)sqlite3_column_text(st, 1);
@@ -128,7 +137,7 @@ char *get_articoli_json(sqlite3 *db) {
         int quantita    = sqlite3_column_int   (st, 4);
         const char *foto= (const char *)sqlite3_column_text(st, 5);
 
-        char rec[1024];
+        char rec[1024]; //crea una stringa che rappresenta l'articolo in json 
         snprintf(rec, sizeof(rec),
             "{\"ID_Articolo\":%d,\"Nome\":\"%s\",\"Descrizione\":\"%s\"," \
             "\"Prezzo\":%.2f,\"Quantita\":%d,\"Foto\":\"%s\"}",
@@ -157,13 +166,15 @@ char *get_blog_json(sqlite3 *db) {
         ") FROM PostBlog;";
     return json_array(db, sql);
 }
+//gli indici indicano quale parametro viene estratto 
+
 
 //insert utils
 int insert_ente(sqlite3 *db, const char *nome, const char *descr, const char *sede) {
     const char *sql = "INSERT INTO Ente_Benefico (Nome,Descrizione,Sede) VALUES (?,?,?);";
     sqlite3_stmt *stmt;
     if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK) return 1;
-    sqlite3_bind_text(stmt, 1, nome, -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 1, nome, -1, SQLITE_TRANSIENT); //transient x maggiore sicurezza 
     sqlite3_bind_text(stmt, 2, descr, -1, SQLITE_TRANSIENT);
     sqlite3_bind_text(stmt, 3, sede, -1, SQLITE_TRANSIENT);
     int rc = sqlite3_step(stmt);
@@ -172,9 +183,9 @@ int insert_ente(sqlite3 *db, const char *nome, const char *descr, const char *se
 }
 
 int insert_donazione(sqlite3 *db, int id_utente, int id_ente, double importo) {    const char *sql = "INSERT INTO Donazione (ID_Utente, ID_Ente, Importo) VALUES (?, ?, ?);";
-    sqlite3_stmt *stmt;
-    if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK) return 1;
-    sqlite3_bind_int(stmt, 1, id_utente);
+    sqlite3_stmt *stmt; 
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK) return 1; 
+    sqlite3_bind_int(stmt, 1, id_utente); //rimpiazza  ? con i parametri 
     sqlite3_bind_int(stmt, 2, id_ente);
     sqlite3_bind_double(stmt, 3, importo);
     int rc = sqlite3_step(stmt);
@@ -188,8 +199,7 @@ int insert_post(sqlite3 *db, const char *nome, const char *msg) {
     if (sqlite3_prepare_v2(db, sql, -1, &st, NULL) != SQLITE_OK) return 1;
     sqlite3_bind_text(st, 1, nome, -1, SQLITE_TRANSIENT);
     sqlite3_bind_text(st, 2, msg,  -1, SQLITE_TRANSIENT);
-    int rc = sqlite3_step(st);
+    int rc = sqlite3_step(st);  //return code 
     sqlite3_finalize(st);
-    return rc != SQLITE_DONE;      // 0 = OK
+    return rc != SQLITE_DONE;      //Restituisci 1 se rc è diverso da SQLITE_DONE; altrimenti restituisci 0 
 }
-
