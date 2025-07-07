@@ -33,7 +33,7 @@
   </main>
 
   <script>
-    // Prendi parametri da URL
+    //prendi parametri da URL
     const params = new URLSearchParams(window.location.search);
     const tipo = params.get("tipo");
     const importo = params.get("importo");
@@ -52,7 +52,7 @@
       info.innerHTML = "Errore: tipo di operazione sconosciuto.";
     }
 
-    // Gestione submit
+    //gstione submit
     document.getElementById("paypal-form").addEventListener("submit", e => {
       e.preventDefault();
       window.location.href = "grazie.html";
@@ -60,3 +60,4 @@
   </script>
 </body>
 </html>
+
