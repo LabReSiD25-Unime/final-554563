@@ -33,14 +33,16 @@
   </main>
 
   <script>
-    //prendi parametri da URL
+    //legge i valori passati nella barra degli indirizzi
     const params = new URLSearchParams(window.location.search);
+    //window.location.search prende la parte dopo il ? dell’URL (es. ?tipo=donazione&id_ente=3)
+  //URLSearchParams(...) crea un oggetto che permette di leggere quei parametri facilmente
     const tipo = params.get("tipo");
     const importo = params.get("importo");
     const id_ente = params.get("id_ente");
     const id_articolo = params.get("id_articolo");
 
-    const info = document.getElementById("info");
+    const info = document.getElementById("info"); //prende elem con id info 
     const indirizzoBox = document.getElementById("indirizzo-box");
 
     if (tipo === "donazione") {
@@ -60,4 +62,3 @@
   </script>
 </body>
 </html>
-
