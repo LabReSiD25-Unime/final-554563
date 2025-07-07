@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ShareCare – Home</title>
+  <title>ShareCare - Home</title>
   <link rel="stylesheet" href="stile.css" />
 </head>
 <body>
@@ -46,7 +46,7 @@
     <!-- enti -->
     <section id="enti">
       <h2>Enti benefici supportati</h2>
-      <ul id="lista-enti" class="grid">
+      <ul id="lista-enti" class="grid"> <!-- lista non ordinata-->
         <li>Caricamento in corso...</li>
       </ul>
     </section>
@@ -60,7 +60,7 @@
     </section>
   </main>
 
-  <!-- template per clonare le card -->
+  <!-- template per clonare le card. Serve per clonare elementi HTML via JavaScript.-->
   <template id="ente-template">
     <li class="card">
       <h3 class="nome"></h3>
@@ -79,13 +79,13 @@
   </template>
 
   <script>
-    //helper abbreviations
+    //helper abbreviations. funzione arrow che prende un parametro s (un selettore CSS) e ritorna document.querySelector(s).
     const $ = s => document.querySelector(s);
 
     //carica enti benefici
-    fetch("http://localhost:8080/enti")
-      .then(response => response.json())
-      .then(dati => {
+    fetch("http://localhost:8080/enti") //fa una richiesta GET al server per ottenere gli enti
+      .then(response => response.json()) //converte la risposta in JSON
+      .then(dati => { //visualizza gli enti
         const ul = document.getElementById("lista-enti");
         ul.innerHTML = ""; //svuota messaggio iniziale
 
@@ -94,8 +94,8 @@
           return;
         }
 
-        dati.forEach(ente => {
-          const li = document.createElement("li");
+        dati.forEach(ente => {(response => response.json())  
+          const li = document.createElement("li"); //list item 
           li.innerHTML = `
             <div class="ente-box">
               <img src="${ente.Logo}" alt="Logo ${ente.Nome}" class="ente-logo">
@@ -117,7 +117,7 @@
 
     //carica articoli solidali 
     fetch("http://localhost:8080/articoli")
-      .then(r => r.ok ? r.json() : Promise.reject(r))
+      .then(r => r.ok ? r.json() : Promise.reject(r)) //se c'è un errore nella risposta, la rifiuta
       .then(articoli => {
         const container = $("#articoli-container");
         container.innerHTML = "";
@@ -133,7 +133,7 @@
           card.innerHTML = `
             <img src="${a.Foto}" alt="${a.Nome}" />
             <h3>${a.Nome}</h3>
-            <p>${a.Descrizione || ""}</p>
+            <p>${a.Descrizione || ""}</p> 
             <p class="prezzo">€ ${prezzo.toFixed(2)}</p>
             <button class="btn-acquista" data-articolo="${a.ID_Articolo}" data-ente="${a.ID_Ente}" data-importo="${prezzo.toFixed(2)}">Acquista con PayPal</button>
           `;
@@ -148,22 +148,22 @@
   <script>
   //scorrimento automatico cause ogni 10 secondi
   let index = 0;
-  const causes = document.querySelectorAll(".cause");
-  const causeList = document.getElementById("cause-list");
+  const causes = document.querySelectorAll(".cause"); //definisce l'elemento causa
+  const causeList = document.getElementById("cause-list"); //definisce la lista 
 
   setInterval(() => {
-    index = (index + 1) % causes.length;
+    index = (index + 1) % causes.length; //indice delle cause. all'ultima ripartono da capo
     causeList.style.transform = `translateX(-${index * 100}vw)`;
-  }, 10000);
+  }, 10000); //chiama la funzione ogni 10.000 millisecondi (10 secondi)
   </script>
   <script>
   //gestione click bottoni PayPal
-  document.body.addEventListener('click', e => {
+  document.body.addEventListener('click', e => { //vede se l'utente ha cliccato su un bottone
     if (e.target.classList.contains('btn-dona')) {
       const b = e.target;
       const ente = b.dataset.ente;
       const importo = b.dataset.importo;
-      location.href = `paypal.html?tipo=donazione&id_ente=${ente}&importo=${importo}`;
+      location.href = `paypal.html?tipo=donazione&id_ente=${ente}&importo=${importo}`; //url della pagina paypal
     }
 
     if (e.target.classList.contains('btn-acquista')) {
