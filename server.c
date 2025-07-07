@@ -11,17 +11,17 @@
 #define PORTA 8080
 #define BUF_SIZE 8192
 
-atomic_int contatore_client = 0;
+atomic_int contatore_client = 0; //variabile che può essere letta e scritta in modo sicuro anche quando più thread accedono ad essa contemporaneamente
 
-struct ThreadArgs {
+struct ThreadArgs { //la funzione pthread_create accetta un solo parametro void *arg, quindi per passare più dati (o anche solo uno con tipo definito), si mettono in una struct e poi si passa un puntatore a quella struct
     int sock;
 };
 
-static void gestisci_client(int client_sock, sqlite3 *db);
+static void gestisci_client(int client_sock, sqlite3 *db); //static xk è privata x il file c 
 static void invia_risposta(int client_sock, const char *status, const char *content_type, const char *body);
 static char *estrai_body(char *request);
 static void route_get_enti(int sock, sqlite3 *db);
-static void route_post_enti(int sock, sqlite3 *db, const char *body);
+static void route_post_enti(int sock, sqlite3 *db, const char *body);  //body è il json 
 static void route_get_articoli(int sock, sqlite3 *db);
 static void route_post_donazioni(int sock, sqlite3 *db, const char *body);
 static void route_post_checkout(int sock, sqlite3 *db, const char *body);
@@ -29,13 +29,17 @@ static void route_get_blog(int sock, sqlite3 *db);
 static void route_post_blog(int sock, sqlite3 *db, const char *body);
 void *thread_client(void *arg);
 
-static void serve_static_file(int sock, const char *path) {
+
+//questa funzione è una misura di sicurezza
+static void serve_static_file(int sock, const char *path) { //path è url richiesto dal browser. 
     //costruisce percorso 
     char file[512];
-    if (strcmp(path, "/") == 0)
-        strcpy(file, "index.html");          
-    else
-        snprintf(file, sizeof(file), ".%s", path); 
+    if (strcmp(path, "/") == 0)               //Se il path richiesto è esattamente / (cioè l’utente ha visitato localhost:8080/)
+//allora carichiamo "index.html".
+        strcpy(file, "index.html");          //root ->index
+    else //Se invece il path è un altro (es: /stile.css, /foto.png)
+//allora costruisce il nome del file aggiungendo un punto davanti:
+        snprintf(file, sizeof(file), ".%s", path); // ./paypal.html, ./stile.css, ...
 
     FILE *fp = fopen(file, "rb");
     if (!fp) {                              //file non trovato
@@ -43,15 +47,15 @@ static void serve_static_file(int sock, const char *path) {
         return;
     }
 
-    
+    //determina di che tipo è il file
     const char *ctype = "text/plain";
-    if (strstr(file, ".html")) ctype = "text/html";
+    if (strstr(file, ".html")) ctype = "text/html";  
     else if (strstr(file, ".css")) ctype = "text/css";
     else if (strstr(file, ".js"))  ctype = "application/javascript";
     else if (strstr(file, ".png")) ctype = "image/png";
     else if (strstr(file, ".jpg") || strstr(file, ".jpeg")) ctype = "image/jpeg";
 
-    fseek(fp, 0, SEEK_END);
+    fseek(fp, 0, SEEK_END); //misura quanto è lungo il file 
     long len = ftell(fp);
     rewind(fp);
 
@@ -62,7 +66,7 @@ static void serve_static_file(int sock, const char *path) {
         ctype, len);
     send(sock, header, strlen(header), 0);
 
-    //invia corpo 
+    //invia corpo (binary-safe)
     char buf[4096];
     size_t n;
     while ((n = fread(buf, 1, sizeof(buf), fp)) > 0)
@@ -115,7 +119,7 @@ int main(void) {
             continue;
         }
         char ip_client[INET_ADDRSTRLEN];
-        inet_ntop(AF_INET, &client_addr.sin_addr, ip_client, sizeof(ip_client));
+        inet_ntop(AF_INET, &client_addr.sin_addr, ip_client, sizeof(ip_client)); //converte in formato di rete leggibile
         int numero = atomic_fetch_add(&contatore_client, 1) + 1;
         time_t ora = time(NULL);
         char *orario = ctime(&ora);
@@ -139,7 +143,7 @@ void *thread_client(void *arg) {
     int client_sock = args->sock;
     free(args);
 
-    // ogni thread apre il proprio db!
+    //ogni thread apre il proprio db!
     sqlite3 *db;
     if (open_db(&db)) {
         fprintf(stderr, "[ERRORE] DB thread non disponibile\n");
@@ -155,33 +159,33 @@ void *thread_client(void *arg) {
     pthread_exit(NULL);
 }
 
-//Gestione richiesta
+//gestione richiesta
 static void gestisci_client(int client_sock, sqlite3 *db) {
     char buffer[BUF_SIZE];
     int bytes = recv(client_sock, buffer, sizeof(buffer) - 1, 0);
     if (bytes <= 0) return;
     buffer[bytes] = '\0';
 
-    // Estrai metodo e path
+    //estrai metodo e path
     char metodo[8], path[256];
     sscanf(buffer, "%7s %255s", metodo, path);
-    // Rimuovi eventuale query string ?... da path
+    //rimuove eventuale query string ?... da path
     char *q = strchr(path, '?');
     if (q) *q = '\0';
 
     printf("[DEBUG] Richiesta: %s %s\n", metodo, path);
 
-    //file statici
+    //FILE STATICI
     if (strcmp(metodo, "GET") == 0 &&
         (strstr(path, ".html") || strstr(path, ".css") || strstr(path, ".js") ||
          strstr(path, ".png")  || strstr(path, ".jpg") || strcmp(path, "/") == 0)) {
         serve_static_file(client_sock, path);
-        return;          
+        return;          // niente altro da fare
     }
 
     char *body = estrai_body(buffer);
 
-    //ROUTING
+    // ROUTING
     if (strcmp(metodo, "GET") == 0 && strcmp(path, "/enti") == 0) {
         route_get_enti(client_sock, db);
 
@@ -207,7 +211,7 @@ static void gestisci_client(int client_sock, sqlite3 *db) {
     }
 }
 
-//utils
+//Utils
 static char *estrai_body(char *request) {
     char *body = strstr(request, "\r\n\r\n");
     return body ? body + 4 : NULL;
@@ -223,7 +227,7 @@ static void invia_risposta(int client_sock, const char *status, const char *cont
     printf("[DEBUG] Risposta inviata: %s\n", status);
 }
 
-//route handlers
+//ROUTE HANDLERS
 static void route_get_enti(int sock, sqlite3 *db) {
     char *json = get_enti_json(db);
     invia_risposta(sock, "200 OK", "application/json", json);
@@ -236,7 +240,7 @@ static void route_post_enti(int sock, sqlite3 *db, const char *body) {
         return;
     }
     char nome[128] = "", descr[256] = "", sede[128] = "";
-    //parsing
+    // parsing naive: cerca "Nome":"..."
     sscanf(body, "{\"Nome\":\"%127[^\"]\",\"Descrizione\":\"%255[^\"]\",\"Sede\":\"%127[^\"]", nome, descr, sede);
 
     if (strlen(nome) == 0) {
@@ -277,15 +281,15 @@ static void route_post_donazioni(int sock, sqlite3 *db, const char *body) {
 }
 
 static void route_post_checkout(int sock, sqlite3 *db, const char *body) {
-    /* esempio body JSON:
+    /* body JSON:
        {
          "tipo":"donazione"|"acquisto",
          "id_ente":3,
-         "id_articolo":5,        
+         "id_articolo":5,        // facoltativo
          "email":"utente@example.com",
-         "password":"...",      
+         "password":"...",       // ignorata, solo per finta UI
          "importo":25.0,
-         "indirizzo":"Via Roma 1, 00100 Roma" //solo x acquisto
+         "indirizzo":"Via Roma 1, 00100 Roma" // solo acquisto
        }
     */
     char tipo[16] = "";
@@ -332,3 +336,45 @@ static void route_post_blog(int sock, sqlite3 *db, const char *body) {
     else
         invia_risposta(sock, "201 Created", "application/json", "{\"msg\":\"Post salvato\"}");
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠠⠀⠀⠀⠀⠠⣀⣠⣤⣤⣤⣤⣤⣄⡠⠤⠄⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⠤⠄⠒⠒⠒⠂⠂⠀⠀⠀⠀⠀⠀⠀⠀⣠⣾⣿⣿⣿⣿⣿⣿⣿⣿⠃⠀⠀⠈⠳⠤⢀⡀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⣠⠊⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢹⣿⣿⣿⣿⣿⣿⣿⣿⣿⡆⠀⠀⠀⠀⠀⠀⠈⠳⡄⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⡠⠒⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣠⣾⣿⣿⣿⣿⣿⣿⣿⣿⠟⠁⠀⠀⠀⠀⠀⠀⠀⠀⠘⣄⠀⠀⠀
+⠀⠀⠀⠀⠀⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⢿⣿⣿⣿⣿⣿⣿⣿⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠑⢄⠀
+⠀⠀⠀⢀⢖⣿⡷⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣼⣿⣿⣿⣿⣿⣿⣿⡿⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⠀
+⠀⠀⠀⢸⡾⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣴⣿⣿⣿⣿⣿⣿⣿⠟⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢇⠀
+⠀⠀⠀⣴⣛⣿⣿⠇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢺⣿⣿⣿⣿⣿⣿⣿⢥⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡸⠀
+⠀⠀⣾⣾⣿⣿⣧⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣀⣤⠽⠿⠿⠿⠿⠿⣧⣄⡈⠛⠛⠛⣛⣛⣳⣶⣶⣦⣄⡀⠀⠀⠀⠀⡎⠀⠀
+⠀⠘⡿⣿⣿⣿⣿⣿⣦⣄⠀⠀⣀⣠⠤⠤⣤⣖⡺⢟⣩⠥⢒⡊⠭⠭⠝⢑⣒⠲⠤⢭⢖⣪⠭⠜⠓⢒⣒⠒⠒⢒⣛⢷⣄⠀⢀⡇⠀⠀
+⠀⢀⣽⣿⣿⣿⣿⣿⣿⣿⣠⠞⠉⢀⣤⣿⡭⠷⡺⠚⠉⢩⣾⣩⡿⠻⣦⡀⠀⠀⠀⠁⠲⡠⠒⠁⠀⣴⣈⡿⠷⣦⠀⠈⠈⠙⠻⣄⠀⠀
+⠀⢸⣿⣿⣿⣿⣿⡭⠟⠉⠁⠀⠀⠘⠓⠒⠲⡉⠀⠀⠀⢸⣿⣬⣷⣶⣿⡇⠀⠀⠀⠀⠈⠀⠀⠀⢸⣿⣧⣿⣶⣿⠇⠀⠀⠀⠀⣸⠀⠀
+⠀⠀⠈⠓⣿⠶⠟⠁⠀⠀⠀⠀⠀⠘⠛⠂⠀⠈⠑⠠⢀⠈⢛⣿⣿⠛⠋⣀⡀⣀⠠⠐⠂⠀⢀⣀⠀⠙⠻⠿⢿⣍⡀⠤⠤⠒⢊⡍⠀⠀
+⠀⠀⠀⡴⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⢠⣄⣤⣾⣿⣷⣤⠀⠀⠀⠀⠀⠀⣀⡤⡎⠀⠀⠀
+⠀⠀⡸⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⡤⠤⠶⠦⢤⣤⣀⠀⠀⢠⣿⣿⣿⣤⣿⣿⣿⣿⣇⣀⣀⣤⢶⠛⠁⢀⡏⠀⠀⠀
+⠀⢰⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠸⣅⡀⠐⠦⣤⣤⣀⣈⠉⠙⠻⣿⣿⣿⣿⣿⣿⣿⡿⠉⠀⢀⣀⣠⣤⠴⢻⠀⠀⠀⠀
+⠀⢸⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠙⠳⠶⢤⣄⣉⠉⠛⠛⠛⠻⠻⣿⣿⣿⠿⠿⠿⠛⠛⠋⠉⠁⣀⣴⠏⠀⠀⠀⠀
+⠀⡏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠰⢦⣀⠀⠀⠀⠀⠀⠀⠈⠉⠓⠒⠦⠤⠤⠤⠤⠤⠤⠤⠤⠤⠤⠶⠒⠋⠉⡘⠀⠀⠀⠀⠀
+⢀⣧⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⡇⠀⠀⠀⠀⠀
+⢸⠀⠙⠦⣄⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡔⠑⠒⠦⢤⣄⠀⠀⠀⠀⠀⠀⠀⣀⠤⠤⠤⢤⣀⣀⣀⠴⠚⠉⠀⢸⠀⠀⠀⠀⠀
+⢸⠀⠀⠀⠈⠉⠛⠒⠦⠤⢤⣀⣀⣀⣀⣀⣀⣀⣰⠁⠀⠀⠀⠀⠈⠑⡤⠒⠒⢢⠖⣉⠀⠀⠀⠀⠀⠉⠁⠀⠀⠀⠀⠀⠈⠳⣄⠀⠀⠀
+⠸⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⠀⠀⠀⠀⠀⠀⠩⠇⠀⠀⠀⠧⠀⠀⠀⠀⠀⠀⠁⠀⠀⠀⠀⠀⠀⠀⠀⠈⢦⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⠀⠀⠀⠀⠀⡀⠜⠒⠤⠀⠐⠒⠤⡀⠀⠀⠀⡰⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠱⡄
+*/
