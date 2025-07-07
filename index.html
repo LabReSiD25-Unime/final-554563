@@ -43,7 +43,7 @@
   </section>
 
   <main>
-    <!-- Enti benefici -->
+    <!-- enti -->
     <section id="enti">
       <h2>Enti benefici supportati</h2>
       <ul id="lista-enti" class="grid">
@@ -51,7 +51,7 @@
       </ul>
     </section>
 
-    <!-- Articoli solidali -->
+    <!-- articoli -->
     <section id="articoli">
       <h2>Articoli solidali</h2>
       <div id="articoli-container" class="grid">
@@ -60,7 +60,7 @@
     </section>
   </main>
 
-  <!-- Template per clonare le card dinamicamente -->
+  <!-- template per clonare le card -->
   <template id="ente-template">
     <li class="card">
       <h3 class="nome"></h3>
@@ -79,15 +79,15 @@
   </template>
 
   <script>
-    // Helper abbreviations
+    //helper abbreviations
     const $ = s => document.querySelector(s);
 
-    // --- Carica enti benefici ---
+    //carica enti benefici
     fetch("http://localhost:8080/enti")
       .then(response => response.json())
       .then(dati => {
         const ul = document.getElementById("lista-enti");
-        ul.innerHTML = ""; // Svuota messaggio iniziale
+        ul.innerHTML = ""; //svuota messaggio iniziale
 
         if (dati.length === 0) {
           ul.innerHTML = "<li>Nessun ente disponibile.</li>";
@@ -115,7 +115,7 @@
         console.error("Errore nella richiesta:", error);
       });
 
-    // --- Carica articoli solidali ---
+    //carica articoli solidali 
     fetch("http://localhost:8080/articoli")
       .then(r => r.ok ? r.json() : Promise.reject(r))
       .then(articoli => {
@@ -146,7 +146,7 @@
       });
   </script>
   <script>
-  // Scorrimento automatico cause ogni 10 secondi
+  //scorrimento automatico cause ogni 10 secondi
   let index = 0;
   const causes = document.querySelectorAll(".cause");
   const causeList = document.getElementById("cause-list");
@@ -157,7 +157,7 @@
   }, 10000);
   </script>
   <script>
-  // Gestione click bottoni PayPal
+  //gestione click bottoni PayPal
   document.body.addEventListener('click', e => {
     if (e.target.classList.contains('btn-dona')) {
       const b = e.target;
