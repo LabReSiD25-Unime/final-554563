@@ -22,7 +22,7 @@
   </main>
 
   <script>
-    // Carica post
+    //carica post
     function caricaPost() {
       fetch("http://localhost:8080/blog")
         .then(res => res.json())
@@ -38,7 +38,7 @@
         });
     }
 
-    // Invia nuovo post
+    //invia nuovo post
     document.getElementById("form-blog").addEventListener("submit", e => {
       e.preventDefault();
       const nome = document.getElementById("nome-blog").value;
