@@ -1,27 +1,4 @@
-#ifndef SHARECARE_DATABASE_H
-#define SHARECARE_DATABASE_H
 
-#include <sqlite3.h>
-
-int open_db(sqlite3 **db);
-void close_db(sqlite3 *db);
-int init_db(sqlite3 *db);
-
-/* Serializza in JSON (malloc, free a carico del chiamante) */
-char *get_enti_json(sqlite3 *db);
-char *get_articoli_json(sqlite3 *db);
-char *get_blog_json(sqlite3 *db);
-
-/* Inserimenti */
-int insert_ente(sqlite3 *db, const char *nome, const char *descr, const char *sede);
-int insert_donazione(sqlite3 *db, int id_utente, int id_ente, double importo);
-int insert_post(sqlite3 *db, const char *nome, const char *msg);
-
-#endif // SHARECARE_DATABASE_H
-
-// ============================
-// File: database.c
-// ============================
 #include "database.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,26 +14,15 @@ void close_db(sqlite3 *db) {
 
 int init_db(sqlite3 *db) {
     const char *sql =
-        "CREATE TABLE IF NOT EXISTS Ente_Benefico ("  // Enti benefici
+        "CREATE TABLE IF NOT EXISTS Ente_Benefico ("  //enti benefici
         "ID_Ente INTEGER PRIMARY KEY AUTOINCREMENT," 
         "Nome TEXT NOT NULL," 
         "Descrizione TEXT," 
         "Sede TEXT);" 
 
-        "CREATE TABLE IF NOT EXISTS Utente ("  // utenti per donazioni
-        "ID_Utente INTEGER PRIMARY KEY AUTOINCREMENT," 
-        "Nome TEXT, Cognome TEXT, Email TEXT UNIQUE);" 
+        
 
-        "CREATE TABLE IF NOT EXISTS Donazione ("  // donazioni
-        "ID_Donazione INTEGER PRIMARY KEY AUTOINCREMENT," 
-        "ID_Utente INTEGER," 
-        "ID_Ente INTEGER," 
-        "Importo REAL," 
-        "Data TEXT DEFAULT CURRENT_TIMESTAMP," 
-        "FOREIGN KEY(ID_Utente) REFERENCES Utente(ID_Utente)," 
-        "FOREIGN KEY(ID_Ente) REFERENCES Ente_Benefico(ID_Ente));" 
-
-        "CREATE TABLE IF NOT EXISTS Articolo_Solidale ("  // articoli con foto
+        "CREATE TABLE IF NOT EXISTS Articolo_Solidale ("  //articoli con foto
         "ID_Articolo INTEGER PRIMARY KEY AUTOINCREMENT," 
         "Nome TEXT NOT NULL," 
         "Descrizione TEXT," 
@@ -66,17 +32,7 @@ int init_db(sqlite3 *db) {
         "ID_Ente INTEGER," 
         "FOREIGN KEY(ID_Ente) REFERENCES Ente_Benefico(ID_Ente));"
 
-        // Nuova tabella Transazione
-        "CREATE TABLE IF NOT EXISTS Transazione ("
-        "ID_Tx     INTEGER PRIMARY KEY AUTOINCREMENT,"
-        "Tipo      TEXT,"
-        "ID_Ente   INTEGER,"
-        "ID_Articolo INTEGER,"
-        "Email     TEXT,"
-        "Importo   REAL,"
-        "Indirizzo TEXT,"
-        "Data      TEXT DEFAULT CURRENT_TIMESTAMP"
-        ");"
+        
         "CREATE TABLE IF NOT EXISTS PostBlog ("
         "  ID_Post   INTEGER PRIMARY KEY AUTOINCREMENT,"
         "  Nome      TEXT    NOT NULL,"
@@ -94,7 +50,8 @@ int init_db(sqlite3 *db) {
     return 0;
 }
 
-// ---------------- JSON UTILS ----------------
+
+//JSON UTILS
 static char *json_array(sqlite3 *db, const char *sql) {
     sqlite3_stmt *stmt;
     if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK) return strdup("[]");
@@ -154,7 +111,7 @@ char *get_articoli_json(sqlite3 *db) {
     if (sqlite3_prepare_v2(db, sql, -1, &st, NULL) != SQLITE_OK) return strdup("[]");
 
     size_t cap = 8192;
-    char *json = malloc(cap);          /* buffer dinamico */
+    char *json = malloc(cap);          //buffer dinamico
     if (!json) { sqlite3_finalize(st); return strdup("[]"); }
 
     strcpy(json, "[");
@@ -177,7 +134,7 @@ char *get_articoli_json(sqlite3 *db) {
             "\"Prezzo\":%.2f,\"Quantita\":%d,\"Foto\":\"%s\"}",
             id, nome, desc, prezzo, quantita, foto);
 
-        /* rialloca se serve */
+        //rialloca se serve
         if (strlen(json) + strlen(rec) + 2 > cap) {
             cap *= 2;
             json = realloc(json, cap);
@@ -201,7 +158,7 @@ char *get_blog_json(sqlite3 *db) {
     return json_array(db, sql);
 }
 
-// ---------------- INSERT UTILS ----------------
+//insert utils
 int insert_ente(sqlite3 *db, const char *nome, const char *descr, const char *sede) {
     const char *sql = "INSERT INTO Ente_Benefico (Nome,Descrizione,Sede) VALUES (?,?,?);";
     sqlite3_stmt *stmt;
@@ -235,3 +192,4 @@ int insert_post(sqlite3 *db, const char *nome, const char *msg) {
     sqlite3_finalize(st);
     return rc != SQLITE_DONE;      // 0 = OK
 }
+
