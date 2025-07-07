@@ -30,7 +30,7 @@ static void route_post_blog(int sock, sqlite3 *db, const char *body);
 void *thread_client(void *arg);
 
 static void serve_static_file(int sock, const char *path) {
-    /* path comincia con /; costruisci percorso locale */
+    //costruisce percorso 
     char file[512];
     if (strcmp(path, "/") == 0)
         strcpy(file, "index.html");          // root → index
@@ -76,7 +76,7 @@ int main(void) {
     struct sockaddr_in server_addr, client_addr;
     socklen_t client_len = sizeof(client_addr);
 
-    // Inizializza il DB *una volta sola* per creare le tabelle
+    //inizializza il DB una volta sola per creare le tabelle
     sqlite3 *db;
     if (open_db(&db) || init_db(db)) {
         fprintf(stderr, "[ERRORE] Inizializzazione DB fallita\n");
@@ -84,7 +84,7 @@ int main(void) {
     }
     close_db(db);
 
-    // Socket
+    //socket
     if ((server_sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         perror("socket");
         return EXIT_FAILURE;
