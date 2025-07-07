@@ -33,17 +33,17 @@ static void serve_static_file(int sock, const char *path) {
     //costruisce percorso 
     char file[512];
     if (strcmp(path, "/") == 0)
-        strcpy(file, "index.html");          // root → index
+        strcpy(file, "index.html");          
     else
-        snprintf(file, sizeof(file), ".%s", path); // ./paypal.html, ./stile.css, ...
+        snprintf(file, sizeof(file), ".%s", path); 
 
     FILE *fp = fopen(file, "rb");
-    if (!fp) {                              // file non trovato
+    if (!fp) {                              //file non trovato
         invia_risposta(sock, "404 Not Found", "text/plain", "File non trovato");
         return;
     }
 
-    /* determina Content-Type minimale */
+    
     const char *ctype = "text/plain";
     if (strstr(file, ".html")) ctype = "text/html";
     else if (strstr(file, ".css")) ctype = "text/css";
@@ -55,14 +55,14 @@ static void serve_static_file(int sock, const char *path) {
     long len = ftell(fp);
     rewind(fp);
 
-    /* invia header */
+    //invia header
     char header[256];
     snprintf(header, sizeof(header),
         "HTTP/1.1 200 OK\r\nContent-Type: %s\r\nContent-Length: %ld\r\nConnection: close\r\n\r\n",
         ctype, len);
     send(sock, header, strlen(header), 0);
 
-    /* invia corpo (binary-safe) */
+    //invia corpo 
     char buf[4096];
     size_t n;
     while ((n = fread(buf, 1, sizeof(buf), fp)) > 0)
@@ -155,7 +155,7 @@ void *thread_client(void *arg) {
     pthread_exit(NULL);
 }
 
-// ---------------------- Gestione richiesta ----------------------
+//Gestione richiesta
 static void gestisci_client(int client_sock, sqlite3 *db) {
     char buffer[BUF_SIZE];
     int bytes = recv(client_sock, buffer, sizeof(buffer) - 1, 0);
@@ -171,17 +171,17 @@ static void gestisci_client(int client_sock, sqlite3 *db) {
 
     printf("[DEBUG] Richiesta: %s %s\n", metodo, path);
 
-    /*  --- FILE STATICI (html, css, js, immagini) --- */
+    //file statici
     if (strcmp(metodo, "GET") == 0 &&
         (strstr(path, ".html") || strstr(path, ".css") || strstr(path, ".js") ||
          strstr(path, ".png")  || strstr(path, ".jpg") || strcmp(path, "/") == 0)) {
         serve_static_file(client_sock, path);
-        return;          // niente altro da fare
+        return;          
     }
 
     char *body = estrai_body(buffer);
 
-    // ROUTING
+    //ROUTING
     if (strcmp(metodo, "GET") == 0 && strcmp(path, "/enti") == 0) {
         route_get_enti(client_sock, db);
 
@@ -207,7 +207,7 @@ static void gestisci_client(int client_sock, sqlite3 *db) {
     }
 }
 
-// ---------------- Utils ----------------
+//utils
 static char *estrai_body(char *request) {
     char *body = strstr(request, "\r\n\r\n");
     return body ? body + 4 : NULL;
@@ -223,7 +223,7 @@ static void invia_risposta(int client_sock, const char *status, const char *cont
     printf("[DEBUG] Risposta inviata: %s\n", status);
 }
 
-// ------------- ROUTE HANDLERS -------------
+//route handlers
 static void route_get_enti(int sock, sqlite3 *db) {
     char *json = get_enti_json(db);
     invia_risposta(sock, "200 OK", "application/json", json);
@@ -236,7 +236,7 @@ static void route_post_enti(int sock, sqlite3 *db, const char *body) {
         return;
     }
     char nome[128] = "", descr[256] = "", sede[128] = "";
-    // parsing naive: cerca "Nome":"..."
+    //parsing
     sscanf(body, "{\"Nome\":\"%127[^\"]\",\"Descrizione\":\"%255[^\"]\",\"Sede\":\"%127[^\"]", nome, descr, sede);
 
     if (strlen(nome) == 0) {
@@ -277,15 +277,15 @@ static void route_post_donazioni(int sock, sqlite3 *db, const char *body) {
 }
 
 static void route_post_checkout(int sock, sqlite3 *db, const char *body) {
-    /* body JSON:
+    /* esempio body JSON:
        {
          "tipo":"donazione"|"acquisto",
          "id_ente":3,
-         "id_articolo":5,        // facoltativo
+         "id_articolo":5,        
          "email":"utente@example.com",
-         "password":"...",       // ignorata, solo per finta UI
+         "password":"...",      
          "importo":25.0,
-         "indirizzo":"Via Roma 1, 00100 Roma" // solo acquisto
+         "indirizzo":"Via Roma 1, 00100 Roma" //solo x acquisto
        }
     */
     char tipo[16] = "";
