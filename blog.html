@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Blog - ShareCare</title>
-  <link rel="stylesheet" href="stile.css">
+  <link rel="stylesheet" href="stile.css"> 
 </head>
 <body>
 
@@ -22,15 +22,15 @@
   </main>
 
   <script>
-    //carica post
+    // Carica post
     function caricaPost() {
-      fetch("http://localhost:8080/blog")
-        .then(res => res.json())
+      fetch("http://localhost:8080/blog") //chiama il server con GET. si aspetta di ricevere una risposta JSON contenente tutti i post.
+        .then(res => res.json()) //converte la risposta in json
         .then(posts => {
-          const container = document.getElementById("post-container");
+          const container = document.getElementById("post-container"); //Cerca nell'HTML un elemento con id="post-container" e lo salva nella variabile container
           container.innerHTML = "";
-          posts.forEach(p => {
-            const div = document.createElement("div");
+          posts.forEach(p => {   //scorre tutti i messaggi e assegna uno stile 
+            const div = document.createElement("div"); //crea un nuovo elemento <div> vuoto usando JavaScript, e lo salva nella variabile div.
             div.className = "post";
             div.innerHTML = `<strong>${p.Nome}</strong> (${p.Data})<br>${p.Messaggio}`;
             container.appendChild(div);
@@ -38,16 +38,16 @@
         });
     }
 
-    //invia nuovo post
-    document.getElementById("form-blog").addEventListener("submit", e => {
+    //gestisce l’invio di un modulo HTML senza ricaricare la pagina
+    document.getElementById("form-blog").addEventListener("submit", e => { //'ascolta' quando l’utente preme INVIO o clicca su 'Invia' dentro quel form...
       e.preventDefault();
       const nome = document.getElementById("nome-blog").value;
       const msg = document.getElementById("messaggio-blog").value;
 
-      fetch("http://localhost:8080/blog", {
+      fetch("http://localhost:8080/blog", { //fa una richiesta post al server
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ Nome: nome, Messaggio: msg })
+        headers: { "Content-Type": "application/json" }, //indica che sta mandando un json 
+        body: JSON.stringify({ Nome: nome, Messaggio: msg }) //converte oggetto javascript in json
       })
       .then(res => {
         if (res.ok) {
