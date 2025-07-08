@@ -113,7 +113,7 @@ int main(void) {
     printf("[ShareCare] Server multithread (pthread) su http://localhost:%d\n", PORTA);
 
     while (1) {
-        int client_sock = accept(server_sock, (struct sockaddr *)&client_addr, &client_len);
+        int client_sock = accept(server_sock, (struct sockaddr *)&client_addr, &client_len); //bloccante
         if (client_sock < 0) {
             perror("accept");
             continue;
@@ -180,12 +180,12 @@ static void gestisci_client(int client_sock, sqlite3 *db) {
         (strstr(path, ".html") || strstr(path, ".css") || strstr(path, ".js") ||
          strstr(path, ".png")  || strstr(path, ".jpg") || strcmp(path, "/") == 0)) {
         serve_static_file(client_sock, path);
-        return;          // niente altro da fare
+        return;       
     }
 
     char *body = estrai_body(buffer);
 
-    // ROUTING
+    //ROUTING
     if (strcmp(metodo, "GET") == 0 && strcmp(path, "/enti") == 0) {
         route_get_enti(client_sock, db);
 
@@ -212,34 +212,39 @@ static void gestisci_client(int client_sock, sqlite3 *db) {
 }
 
 //Utils
-static char *estrai_body(char *request) {
-    char *body = strstr(request, "\r\n\r\n");
-    return body ? body + 4 : NULL;
+static char *estrai_body(char *request) { //prende in ingresso una richiesta HTTP e restituisce il corpo della richiesta
+    char *body = strstr(request, "\r\n\r\n"); //cerca la prima occorrenza di "\r\n\r\n" che segna la fine dell'header HTTP e l'inizio del corpo
+    return body ? body + 4 : NULL; //ritorna un puntatore al primo carattere dopo la sequenza cioè l'inizio del body.
 }
 
+//serve per inviare una risposta HTTP completa (header + corpo) a un client connesso
 static void invia_risposta(int client_sock, const char *status, const char *content_type, const char *body) {
     char header[512];
     snprintf(header, sizeof(header),
         "HTTP/1.1 %s\r\nContent-Type: %s\r\nAccess-Control-Allow-Origin: *\r\nContent-Length: %zu\r\nConnection: close\r\n\r\n",
-        status, content_type, body ? strlen(body) : 0);
-    send(client_sock, header, strlen(header), 0);
-    if (body) send(client_sock, body, strlen(body), 0);
+        status, content_type, body ? strlen(body) : 0); //se body non è NULL, allora calcola strlen(body), altrimenti restituisci 0
+    send(client_sock, header, strlen(header), 0); //invia i dati dell'header HTTP al client
+    if (body) send(client_sock, body, strlen(body), 0); //invia il corpo della risposta HTTP al client, solo se è presente body
     printf("[DEBUG] Risposta inviata: %s\n", status);
 }
 
 //ROUTE HANDLERS
+//Chiama la funzione get_enti_json, che esegue una query SQL su db e costruisce una stringa JSON con i dati degli enti
 static void route_get_enti(int sock, sqlite3 *db) {
     char *json = get_enti_json(db);
     invia_risposta(sock, "200 OK", "application/json", json);
     free(json);
 }
 
+//gestisce una richiesta HTTP POST alla route /enti del server REST, che serve per inserire un nuovo ente benefico nel database.
+
 static void route_post_enti(int sock, sqlite3 *db, const char *body) {
     if (!body) {
-        invia_risposta(sock, "400 Bad Request", "text/plain", "Body mancante");
+        invia_risposta(sock, "400 Bad Request", "text/plain", "Body mancante"); //se il corpo della richiesta è assente (cioè NULL), restituisce al client un errore 400, perché non si possono inserire dati senza informazioni.
         return;
     }
-    char nome[128] = "", descr[256] = "", sede[128] = "";
+    char nome[128] = "", descr[256] = "", sede[128] = ""; 
+    //usa sscanf per estrarre i valori direttamente dalla stringa body in formato JSON.
     // parsing naive: cerca "Nome":"..."
     sscanf(body, "{\"Nome\":\"%127[^\"]\",\"Descrizione\":\"%255[^\"]\",\"Sede\":\"%127[^\"]", nome, descr, sede);
 
@@ -265,6 +270,9 @@ static void route_post_donazioni(int sock, sqlite3 *db, const char *body) {
         invia_risposta(sock, "400 Bad Request", "text/plain", "Body mancante");
         return;
     }
+    /*sscanf è usato per leggere dati da una stringa (body), estraendone i valori secondo un formato predefinito.
+
+Il formato passato ("{\"ID_Utente\":%d,\"ID_Ente\":%d,\"Importo\":%lf") dice al programma di cercare tre valori*/
     int id_utente = 0, id_ente = 0;
     double importo = 0;
     sscanf(body, "{\"ID_Utente\":%d,\"ID_Ente\":%d,\"Importo\":%lf", &id_utente, &id_ente, &importo);
@@ -281,7 +289,7 @@ static void route_post_donazioni(int sock, sqlite3 *db, const char *body) {
 }
 
 static void route_post_checkout(int sock, sqlite3 *db, const char *body) {
-    /* body JSON:
+    /* esempio body JSON:
        {
          "tipo":"donazione"|"acquisto",
          "id_ente":3,
@@ -289,7 +297,7 @@ static void route_post_checkout(int sock, sqlite3 *db, const char *body) {
          "email":"utente@example.com",
          "password":"...",       // ignorata, solo per finta UI
          "importo":25.0,
-         "indirizzo":"Via Roma 1, 00100 Roma" // solo acquisto
+         "indirizzo":"Via Roma 1, 00100 Roma" // solo x acquisto
        }
     */
     char tipo[16] = "";
